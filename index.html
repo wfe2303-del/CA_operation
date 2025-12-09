@@ -8,7 +8,7 @@
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Google Identity Services (로그인용) -->
+  <!-- Google Identity Services (OAuth 토큰용) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <style>
@@ -61,133 +61,202 @@
         </div>
       </div>
 
-      <!-- 로그인 박스 -->
-      <div class="card px-4 py-3 flex flex-col items-end gap-2">
-        <div class="text-xs text-slate-500" id="authState">Google 로그인 필요</div>
-        <div id="g_id_onload"
-             data-client_id="18228268359-iifm4ck3j9kqj74eh1p90tco1k2mbpi0.apps.googleusercontent.com"
-             data-auto_prompt="false">
-        </div>
-        <div class="g_id_signin"
-             data-type="standard"
-             data-size="medium"
-             data-theme="outline"
-             data-text="signin_with"
-             data-shape="pill"
-             data-logo_alignment="left">
-        </div>
+      <!-- 로그인 상태 텍스트 -->
+      <div class="text-right text-xs md:text-sm text-slate-500" id="authState">
+        Google 로그인 필요
       </div>
     </header>
 
-    <!-- 안내 문구 -->
-    <section class="mb-6">
-      <span class="pill">
-        <span class="w-2 h-2 rounded-full bg-green-500"></span>
-        <span>내부 운영용 도구 모음</span>
-      </span>
-      <p class="mt-2 text-xs md:text-sm text-slate-500">
-        상단에서 Google 로그인 후, 아래 기능별 페이지로 이동해서 사용하면 됩니다.
-        각 페이지에서 별도 로그인 버튼이 있더라도, 같은 브라우저에서는 자동으로 연동됩니다.
-      </p>
+    <!-- 1) 로그인 전: 로그인 카드만 보이기 -->
+    <section id="loginCard" class="card max-w-md mx-auto mt-10">
+      <div class="p-5 md:p-6 text-center space-y-3">
+        <h2 class="text-base md:text-lg font-semibold">Google 계정으로 로그인</h2>
+        <p class="text-xs md:text-sm text-slate-500">
+          스프레드시트 / 드라이브 권한을 한 번 허용하면<br/>
+          같은 브라우저에서 kakao / sync / drive 페이지에서 그대로 재사용됩니다.
+        </p>
+        <button id="loginBtn"
+                type="button"
+                class="inline-flex items-center justify-center px-4 py-2.5 rounded-full text-sm md:text-base font-semibold bg-blue-600 text-white hover:bg-blue-700">
+          Google 로그인
+        </button>
+        <p class="text-[11px] text-slate-400 mt-2">
+          사내 운영용 계정으로 로그인해주세요.
+        </p>
+      </div>
     </section>
 
-    <!-- 기능 카드들 -->
-    <section class="grid md:grid-cols-3 gap-4 md:gap-5">
-      <!-- 1. 카카오톡 입장자 체크봇 -->
-      <article class="card p-4 flex flex-col justify-between">
-        <div>
-          <h2 class="text-base md:text-lg font-semibold mb-1 flex items-center gap-2">
-            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-blue-600 text-xs font-bold">1</span>
-            카카오톡 입장자 체크봇
-          </h2>
-          <p class="text-xs md:text-sm text-slate-500 mb-3">
-            카톡방 채팅 로그(txt / csv)를 불러와서<br/>
-            공유용 시트 기준으로 <b class="text-blue-600">입장 · 퇴장</b> 상태를 자동 기록.
-          </p>
-          <ul class="text-[11px] md:text-xs text-slate-500 space-y-1 list-disc list-inside">
-            <li>카톡 txt / csv 업로드 또는 드라이브에서 파일 선택</li>
-            <li>강사 공유용 시트 폴더에서 시트 선택</li>
-            <li>미입장자 / 명단 외 입장자 / 퇴장자 리포트 확인</li>
-          </ul>
-        </div>
-        <div class="mt-4 flex justify-between items-center">
-          <span class="text-[11px] text-slate-400">kakao.html</span>
-          <a href="kakao.html"
-             class="inline-flex items-center justify-center px-3 py-2 rounded-full text-xs md:text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700">
-            입장자 체크 페이지 열기
-          </a>
-        </div>
-      </article>
+    <!-- 2) 로그인 후: 메인 대시보드 영역 -->
+    <section id="mainContent" class="hidden">
+      <!-- 안내 문구 -->
+      <section class="mb-6 mt-4">
+        <span class="pill">
+          <span class="w-2 h-2 rounded-full bg-green-500"></span>
+          <span>로그인 완료 · 내부 운영용 도구 모음</span>
+        </span>
+        <p class="mt-2 text-xs md:text-sm text-slate-500">
+          이 창에서 로그인한 뒤에는, 같은 브라우저 탭에서 열리는
+          <code class="text-[11px] bg-slate-100 px-1 rounded">kakao.html</code>,
+          <code class="text-[11px] bg-slate-100 px-1 rounded">sync.html</code>,
+          <code class="text-[11px] bg-slate-100 px-1 rounded">drive.html</code>에서도
+          동일 토큰을 재사용할 수 있습니다.
+        </p>
+      </section>
 
-      <!-- 2. 수강생 시트 자동 업데이트 -->
-      <article class="card p-4 flex flex-col justify-between">
-        <div>
-          <h2 class="text-base md:text-lg font-semibold mb-1 flex items-center gap-2">
-            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-50 text-red-500 text-xs font-bold">2</span>
-            수강생 시트 자동 업데이트
-          </h2>
-          <p class="text-xs md:text-sm text-slate-500 mb-3">
-            카드 / 계좌 CSV를 업로드하면<br/>
-            결제 내역을 <b class="text-red-500">B2~N</b> 구간에 자동 정리 및 덮어쓰기.
-          </p>
-          <ul class="text-[11px] md:text-xs text-slate-500 space-y-1 list-disc list-inside">
-            <li>카드 결제 CSV + 계좌 tickets / responses</li>
-            <li>결제/환불 자동 매칭 · K열(결제시간) 오름차순 정렬</li>
-            <li>강사 공유용 시트와 직접 연결</li>
-          </ul>
-        </div>
-        <div class="mt-4 flex justify-between items-center">
-          <span class="text-[11px] text-slate-400">sync.html</span>
-          <a href="sync.html"
-             class="inline-flex items-center justify-center px-3 py-2 rounded-full text-xs md:text-sm font-semibold bg-red-500 text-white hover:bg-red-600">
-            시트 업데이트 페이지 열기
-          </a>
-        </div>
-      </article>
+      <!-- 기능 카드들 -->
+      <section class="grid md:grid-cols-3 gap-4 md:gap-5">
+        <!-- 1. 카카오톡 입장자 체크봇 -->
+        <article class="card p-4 flex flex-col justify-between">
+          <div>
+            <h2 class="text-base md:text-lg font-semibold mb-1 flex items-center gap-2">
+              <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-blue-600 text-xs font-bold">1</span>
+              카카오톡 입장자 체크봇
+            </h2>
+            <p class="text-xs md:text-sm text-slate-500 mb-3">
+              카톡방 채팅 로그(txt / csv)를 불러와서<br/>
+              공유용 시트 기준으로 <b class="text-blue-600">입장 · 퇴장</b> 상태를 자동 기록.
+            </p>
+            <ul class="text-[11px] md:text-xs text-slate-500 space-y-1 list-disc list-inside">
+              <li>카톡 txt / csv 업로드 또는 드라이브에서 파일 선택</li>
+              <li>강사 공유용 시트 폴더에서 시트 선택</li>
+              <li>미입장자 / 명단 외 입장자 / 퇴장자 리포트 확인</li>
+            </ul>
+          </div>
+          <div class="mt-4 flex justify-between items-center">
+            <span class="text-[11px] text-slate-400">kakao.html</span>
+            <a href="kakao.html"
+               class="inline-flex items-center justify-center px-3 py-2 rounded-full text-xs md:text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700">
+              입장자 체크 페이지 열기
+            </a>
+          </div>
+        </article>
 
-      <!-- 3. 드라이브 자료 모음 -->
-      <article class="card p-4 flex flex-col justify-between">
-        <div>
-          <h2 class="text-base md:text-lg font-semibold mb-1 flex items-center gap-2">
-            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-blue-600 text-xs font-bold">3</span>
-            드라이브 자료 모음
-          </h2>
-          <p class="text-xs md:text-sm text-slate-500 mb-3">
-            현금결제 폼, 강사 공유용 시트, 무료강의 자료 등<br/>
-            자주 쓰는 구글 드라이브 폴더를 한 번에 모아서 확인.
-          </p>
-          <ul class="text-[11px] md:text-xs text-slate-500 space-y-1 list-disc list-inside">
-            <li>자주 쓰는 폴더 바로가기</li>
-            <li>페이지 내에서 파일 리스트/미리보기</li>
-            <li>링크 복사로 공유 편의성↑</li>
-          </ul>
-        </div>
-        <div class="mt-4 flex justify-between items-center">
-          <span class="text-[11px] text-slate-400">drive.html</span>
-          <a href="drive.html"
-             class="inline-flex items-center justify-center px-3 py-2 rounded-full text-xs md:text-sm font-semibold bg-sky-500 text-white hover:bg-sky-600">
-            드라이브 모음 페이지 열기
-          </a>
-        </div>
-      </article>
+        <!-- 2. 수강생 시트 자동 업데이트 -->
+        <article class="card p-4 flex flex-col justify-between">
+          <div>
+            <h2 class="text-base md:text-lg font-semibold mb-1 flex items-center gap-2">
+              <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-50 text-red-500 text-xs font-bold">2</span>
+              수강생 시트 자동 업데이트
+            </h2>
+            <p class="text-xs md:text-sm text-slate-500 mb-3">
+              카드 / 계좌 CSV를 업로드하면<br/>
+              결제 내역을 <b class="text-red-500">B2~N</b> 구간에 자동 정리 및 덮어쓰기.
+            </p>
+            <ul class="text-[11px] md:text-xs text-slate-500 space-y-1 list-disc list-inside">
+              <li>카드 결제 CSV + 계좌 tickets / responses</li>
+              <li>결제/환불 자동 매칭 · K열(결제시간) 오름차순 정렬</li>
+              <li>강사 공유용 시트와 직접 연결</li>
+            </ul>
+          </div>
+          <div class="mt-4 flex justify-between items-center">
+            <span class="text-[11px] text-slate-400">sync.html</span>
+            <a href="sync.html"
+               class="inline-flex items-center justify-center px-3 py-2 rounded-full text-xs md:text-sm font-semibold bg-red-500 text-white hover:bg-red-600">
+              시트 업데이트 페이지 열기
+            </a>
+          </div>
+        </article>
+
+        <!-- 3. 드라이브 자료 모음 -->
+        <article class="card p-4 flex flex-col justify-between">
+          <div>
+            <h2 class="text-base md:text-lg font-semibold mb-1 flex items-center gap-2">
+              <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-blue-600 text-xs font-bold">3</span>
+              드라이브 자료 모음
+            </h2>
+            <p class="text-xs md:text-sm text-slate-500 mb-3">
+              현금결제 폼, 강사 공유용 시트, 무료강의 자료 등<br/>
+              자주 쓰는 구글 드라이브 폴더를 한 번에 모아서 확인.
+            </p>
+            <ul class="text-[11px] md:text-xs text-slate-500 space-y-1 list-disc list-inside">
+              <li>자주 쓰는 폴더 바로가기</li>
+              <li>페이지 내에서 파일 리스트/미리보기</li>
+              <li>링크 복사로 공유 편의성↑</li>
+            </ul>
+          </div>
+          <div class="mt-4 flex justify-between items-center">
+            <span class="text-[11px] text-slate-400">drive.html</span>
+            <a href="drive.html"
+               class="inline-flex items-center justify-center px-3 py-2 rounded-full text-xs md:text-sm font-semibold bg-sky-500 text-white hover:bg-sky-600">
+              드라이브 모음 페이지 열기
+            </a>
+          </div>
+        </article>
+      </section>
+
+      <!-- 푸터 -->
+      <footer class="mt-8 text-[11px] text-slate-400 text-right">
+        © ClassAround Internal Tools
+      </footer>
     </section>
-
-    <!-- 푸터 -->
-    <footer class="mt-8 text-[11px] text-slate-400 text-right">
-      © ClassAround Internal Tools
-    </footer>
   </div>
 
   <script>
-    // 로그인 상태 텍스트만 대충 표시 (실제 토큰 처리는 각 페이지에서 따로)
-    window.onload = function(){
-      const authSpan = document.getElementById('authState');
-      // GIS는 콜백 없이도 버튼만 띄우는 용도로 사용 중.
-      // 추후 필요하면 여기서 credential callback 붙여도 됨.
-      if (authSpan) {
-        authSpan.textContent = 'Google 로그인 버튼을 눌러 계정을 연결하세요.';
+    const CLIENT_ID = "18228268359-iifm4ck3j9kqj74eh1p90tco1k2mbpi0.apps.googleusercontent.com";
+    let accessToken = null;
+    let tokenClient = null;
+
+    const $ = (sel) => document.querySelector(sel);
+
+    function showMain() {
+      const loginCard = $("#loginCard");
+      const mainContent = $("#mainContent");
+      if (loginCard) loginCard.classList.add("hidden");
+      if (mainContent) mainContent.classList.remove("hidden");
+    }
+
+    function setAuthState(text) {
+      const el = $("#authState");
+      if (el) el.textContent = text;
+    }
+
+    function initAuthClient() {
+      if (!window.google?.accounts?.oauth2) {
+        // 아직 GIS가 안 떠있으면 조금 있다 다시 시도
+        setTimeout(initAuthClient, 100);
+        return;
       }
-    };
+
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly",
+        prompt: "",
+        callback: (res) => {
+          if (res && res.access_token) {
+            accessToken = res.access_token;
+            // 다른 페이지에서 재사용할 수 있도록 저장
+            sessionStorage.setItem("ca_gapi_token", accessToken);
+            setAuthState("로그인 완료 · 이 브라우저 탭에서 토큰 재사용 가능");
+            showMain();
+          }
+        }
+      });
+
+      const saved = sessionStorage.getItem("ca_gapi_token");
+      if (saved) {
+        accessToken = saved;
+        setAuthState("이전에 로그인된 계정 사용 중");
+        showMain();
+      } else {
+        setAuthState("Google 로그인 필요");
+      }
+    }
+
+    window.addEventListener("load", () => {
+      initAuthClient();
+
+      const loginBtn = $("#loginBtn");
+      if (loginBtn) {
+        loginBtn.addEventListener("click", () => {
+          if (!tokenClient) {
+            alert("Google 로그인 초기화 중입니다. 잠시 후 다시 시도해주세요.");
+            return;
+          }
+          // 첫 로그인 시에는 consent, 이후에는 대부분 자동 승인
+          tokenClient.requestAccessToken({ prompt: "consent" });
+        });
+      }
+    });
   </script>
 </body>
 </html>
