@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>클래스어라운드 · 드라이브 폴더 모음</title>
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root{
+      --blue:#2563eb;
+      --red:#ef4444;
+      --light:#f8fafc;
+    }
+    body{background:var(--light);}
+    .nav-pill-active{
+      border-color:var(--blue);
+      background:rgba(37,99,235,0.06);
+      color:#0f172a;
+    }
+    .nav-pill-active .dot{
+      background:var(--blue);
+    }
+  </style>
+</head>
+<body class="text-slate-900">
+  <div class="min-h-screen">
+    <!-- 상단 헤더 -->
+    <header class="border-b border-slate-200 bg-white/80 backdrop-blur">
+      <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-sky-500 via-blue-500 to-red-500 flex items-center justify-center text-white font-extrabold text-xs shadow-sm">
+            CA
+          </div>
+          <div>
+            <h1 class="text-base md:text-lg font-bold flex items-center gap-2">
+              드라이브 폴더 모음
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-50 text-red-500 border border-red-100">
+                구글 드라이브
+              </span>
+            </h1>
+            <p class="text-xs md:text-sm text-slate-500">
+              자주 쓰는 폴더를 한 곳에서 바로 열어보기
+            </p>
+          </div>
+        </div>
+
+        <a href="index.html"
+           class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 text-xs font-medium bg-white hover:bg-slate-50">
+          ← 대시보드로
+        </a>
+      </div>
+    </header>
+
+    <!-- 메인 레이아웃 -->
+    <main class="max-w-6xl mx-auto px-4 py-6">
+      <div class="grid lg:grid-cols-[260px,minmax(0,1fr)] gap-5">
+        <!-- 왼쪽: 폴더 리스트 -->
+        <aside class="bg-white rounded-2xl border border-slate-200 p-3 md:p-4 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold flex items-center gap-1.5">
+              🔗 폴더 선택
+            </h2>
+          </div>
+
+          <div id="folderList" class="space-y-1.5 text-xs md:text-sm">
+            <!-- JS에서 버튼 렌더링 -->
+          </div>
+
+          <div class="mt-4 p-2.5 rounded-xl bg-sky-50 border border-sky-100 text-[11px] leading-relaxed text-sky-800">
+            ⓘ 선택한 폴더는 오른쪽에서 바로 미리보기 되고,<br />
+            새 탭에서 크게 보고 싶으면 상단 <b>「새 탭에서 열기」</b>를 눌러주세요.
+          </div>
+        </aside>
+
+        <!-- 오른쪽: 뷰어 -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col min-h-[460px]">
+          <div class="px-4 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div class="text-xs uppercase tracking-wide text-slate-400 font-semibold">
+                DRIVE FOLDER VIEW
+              </div>
+              <div class="flex items-center gap-2 mt-0.5">
+                <h2 id="currentFolderName" class="text-sm md:text-base font-semibold">
+                  폴더를 선택하세요
+                </h2>
+                <span id="currentFolderBadge"
+                      class="hidden md:inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border border-slate-200 text-slate-500">
+                  -
+                </span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button id="btnOpenNewTab"
+                      class="px-3 py-1.5 rounded-full text-[11px] font-semibold border border-blue-500 text-blue-600 bg-blue-50 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-default"
+                      disabled>
+                새 탭에서 열기
+              </button>
+            </div>
+          </div>
+
+          <div class="flex-1 bg-slate-50 rounded-b-2xl overflow-hidden">
+            <iframe
+              id="driveFrame"
+              src=""
+              title="Google Drive folder viewer"
+              class="w-full h-[420px] md:h-[520px] border-0 bg-slate-50">
+            </iframe>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ===== 폴더 정의 (하드코딩) =====
+    const FOLDERS = [
+      {
+        id: "1LdDYVwxDrpqpPy2HYlSnrw2w7YKhsKWF",
+        name: "현금결제 구글폼",
+        desc: "현금/계좌 결제 응답 모음",
+        originalUrl: "https://drive.google.com/drive/folders/1LdDYVwxDrpqpPy2HYlSnrw2w7YKhsKWF?usp=drive_link"
+      },
+      {
+        id: "1t33dy_UQCfsvoEQ9yOctIxvoT623i-j4",
+        name: "강사 공유용 시트",
+        desc: "강사진 공유 시트 & 자료",
+        originalUrl: "https://drive.google.com/drive/folders/1t33dy_UQCfsvoEQ9yOctIxvoT623i-j4?usp=drive_link"
+      },
+      {
+        id: "1C1OsgYqZtxauLNN9l4mRHPgaIavrhmq-",
+        name: "무료강의 전자책 구글폼",
+        desc: "무료 전자책 신청 응답",
+        originalUrl: "https://drive.google.com/drive/u/0/folders/1C1OsgYqZtxauLNN9l4mRHPgaIavrhmq-"
+      },
+      {
+        id: "1BU7ugKEeRXmG3PoRGJqKHlxuVtgT2_js",
+        name: "무료강의 사전 질문",
+        desc: "무료강의 Q&A / 사전질문",
+        originalUrl: "https://drive.google.com/drive/folders/1BU7ugKEeRXmG3PoRGJqKHlxuVtgT2_js?usp=drive_link"
+      },
+      {
+        id: "1Ej6eIw0WwCn8NxtwW5A4vj8wo2xyKATC",
+        name: "라이브 자료",
+        desc: "라이브 방송 자료·PPT 모음",
+        originalUrl: "https://drive.google.com/drive/folders/1Ej6eIw0WwCn8NxtwW5A4vj8wo2xyKATC?usp=drive_link"
+      }
+    ];
+
+    // Drive 폴더 embed URL로 변환
+    function makeEmbedUrl(id){
+      // list 뷰가 보기 편해서 list 기준
+      return `https://drive.google.com/embeddedfolderview?id=${encodeURIComponent(id)}#list`;
+    }
+
+    const folderListEl       = document.getElementById("folderList");
+    const driveFrameEl       = document.getElementById("driveFrame");
+    const currentFolderName  = document.getElementById("currentFolderName");
+    const currentFolderBadge = document.getElementById("currentFolderBadge");
+    const btnOpenNewTab      = document.getElementById("btnOpenNewTab");
+
+    let currentFolderId = null;
+
+    function renderFolderButtons(){
+      folderListEl.innerHTML = "";
+      FOLDERS.forEach((f, idx) => {
+        const btn = document.createElement("button");
+        btn.type  = "button";
+        btn.dataset.folderId = f.id;
+        btn.className =
+          "w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50 text-left transition";
+
+        btn.innerHTML = `
+          <div class="flex items-center gap-2">
+            <div class="dot w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+            <div>
+              <div class="font-semibold text-xs md:text-[13px] truncate">${f.name}</div>
+              <div class="text-[11px] text-slate-500 truncate">${f.desc}</div>
+            </div>
+          </div>
+          <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-slate-200 text-slate-500">
+            열기
+          </span>
+        `;
+
+        btn.addEventListener("click", () => selectFolder(f.id));
+        folderListEl.appendChild(btn);
+      });
+    }
+
+    function updateActiveButton(){
+      const buttons = folderListEl.querySelectorAll("button[data-folder-id]");
+      buttons.forEach(btn => {
+        if(btn.dataset.folderId === currentFolderId){
+          btn.classList.add("nav-pill-active");
+        } else {
+          btn.classList.remove("nav-pill-active");
+        }
+      });
+    }
+
+    function selectFolder(folderId){
+      const folder = FOLDERS.find(f => f.id === folderId);
+      if(!folder) return;
+
+      currentFolderId = folderId;
+      driveFrameEl.src = makeEmbedUrl(folder.id);
+
+      currentFolderName.textContent = folder.name;
+      currentFolderBadge.textContent = folder.desc || "";
+      currentFolderBadge.classList.remove("hidden");
+
+      btnOpenNewTab.disabled = false;
+      btnOpenNewTab.onclick = () => {
+        window.open(folder.originalUrl, "_blank", "noopener");
+      };
+
+      updateActiveButton();
+    }
+
+    // 초기 실행
+    renderFolderButtons();
+    // 첫 폴더 자동 선택
+    if(FOLDERS.length > 0){
+      selectFolder(FOLDERS[0].id);
+    }
+  </script>
+</body>
+</html>

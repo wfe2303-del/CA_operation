@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>클래스어라운드 · 운영봇 대시보드</title>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    :root{
+      --bg:#f3f4f6; --card:#fff; --surface:#f8fafc; --line:#e5e7eb;
+      --text:#0f172a; --muted:#64748b;
+      --accent:#3b82f6; --accent2:#60a5fa;
+      --radius:14px;
+    }
+    body{
+      margin:0; background:var(--bg); color:var(--text);
+      font:15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    .wrap{max-width:900px;margin:40px auto;padding:0 20px}
+    h1{margin:0;font-size:24px;font-weight:700}
+    .card{
+      background:var(--card);
+      padding:24px;border-radius:var(--radius);
+      border:1px solid var(--line);
+      margin-bottom:20px;
+    }
+    .btn{
+      padding:10px 14px;border-radius:var(--radius);
+      border:1px solid var(--line);
+      background:white;cursor:pointer;
+      transition:.15s;
+    }
+    .btn:hover{
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(96,165,250,.25);
+    }
+    .btn.acc{
+      background:var(--accent);
+      border-color:var(--accent);
+      color:#fff;
+    }
+    .tiles{
+      display:grid; gap:16px;
+      grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    }
+    .tile{
+      padding:18px;border-radius:var(--radius);
+      border:1px solid var(--line);
+      background:white;text-decoration:none;color:inherit;
+      transition:.15s;
+      display:block;
+    }
+    .tile:hover{
+      border-color:var(--accent);
+      box-shadow:0 8px 20px rgba(0,0,0,.05);
+    }
+    .hint{font-size:13px;color:var(--muted)}
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <div class="card" id="loginCard">
+    <h1>클래스어라운드 운영봇</h1>
+    <p class="hint">Google 로그인 후 기능 대시보드로 이동합니다.</p>
+
+    <button class="btn acc" id="loginBtn" style="margin-top:14px;font-size:16px;">
+      🚀 Google 로그인
+    </button>
+
+    <div id="authErr" class="hint" style="color:#ef4444;margin-top:10px"></div>
+  </div>
+
+  <div class="card" id="dashCard" style="display:none">
+    <h1>운영 기능 선택</h1>
+    <p class="hint">사용할 기능을 선택하세요.</p>
+
+    <div class="tiles">
+      <a class="tile" href="kakao.html">
+        💬 <strong>카톡 입장자 체크</strong><br/>
+        <span class="hint">txt/csv 기반 자동 비교 및 시트 업데이트</span>
+      </a>
+
+      <a class="tile" href="sync.html">
+        📊 <strong>수강생 시트 자동 업데이트</strong><br/>
+        <span class="hint">카드 + 계좌 CSV → 정리 후 Google 시트로 전송</span>
+      </a>
+
+      <a class="tile" href="drive.html">
+        📁 <strong>드라이브 폴더 모음</strong><br/>
+        <span class="hint">강의별 폴더를 한 곳에서 관리</span>
+      </a>
+    </div>
+
+    <button class="btn" id="logoutBtn" style="margin-top:20px">로그아웃</button>
+  </div>
+
+</div>
+
+<script>
+/* ============================
+   Google OAuth
+============================ */
+const CLIENT_ID =
+  "18228268359-iifm4ck3j9kqj74eh1p90tco1k2mbpi0.apps.googleusercontent.com";
+
+let accessToken = null;
+let tokenClient;
+
+function initAuth() {
+  if (!window.google?.accounts?.oauth2) {
+    document.getElementById("authErr").textContent = "Google OAuth 로드 실패";
+    return;
+  }
+
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly",
+    prompt: "",
+    callback: (res) => {
+      if (res.access_token) {
+        accessToken = res.access_token;
+        localStorage.setItem("ca_gapi_token", accessToken);
+
+        document.getElementById("loginCard").style.display = "none";
+        document.getElementById("dashCard").style.display = "block";
+      }
+    },
+  });
+}
+
+function doLogin() {
+  tokenClient.requestAccessToken({ prompt: "consent" });
+}
+
+function doLogout() {
+  accessToken = null;
+  localStorage.removeItem("ca_gapi_token");
+
+  google.accounts.oauth2.revoke(accessToken, () => {});
+
+  document.getElementById("dashCard").style.display = "none";
+  document.getElementById("loginCard").style.display = "block";
+}
+
+/* ============================
+   초기 로딩
+============================ */
+window.addEventListener("DOMContentLoaded", () => {
+  initAuth();
+
+  const saved = localStorage.getItem("ca_gapi_token");
+  if (saved) {
+    accessToken = saved;
+    document.getElementById("loginCard").style.display = "none";
+    document.getElementById("dashCard").style.display = "block";
+  }
+
+  document.getElementById("loginBtn").onclick = doLogin;
+  document.getElementById("logoutBtn").onclick = doLogout;
+});
+</script>
+
+</body>
+</html>
