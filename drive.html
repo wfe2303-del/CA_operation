@@ -6,6 +6,8 @@
   <title>클래스어라운드 · 드라이브 폴더 모음</title>
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     :root{
       --blue:#2563eb;
@@ -28,11 +30,29 @@
     <!-- 상단 헤더 -->
     <header class="border-b border-slate-200 bg-white/80 backdrop-blur">
       <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+        <!-- 왼쪽: 로고 + 타이틀 -->
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-sky-500 via-blue-500 to-red-500 flex items-center justify-center text-white font-extrabold text-xs shadow-sm">
-            CA
-          </div>
+          <!-- ClassAround 로고 (kakao / sync와 동일) -->
+          <svg class="w-20 h-11" viewBox="0 0 90 50" role="img" aria-label="ClassAround">
+            <rect width="90" height="50" rx="10" fill="white"/>
+            <circle cx="66" cy="10" r="8" fill="#6b8bd6"/>
+            <circle cx="80" cy="18" r="5" fill="#ef4444"/>
+            <text x="8" y="24"
+                  style="font-family:'Nunito','Arial Rounded MT','SF Pro Rounded','Quicksand','Pretendard','Noto Sans KR',sans-serif;
+                         font-weight:900; letter-spacing:-0.2px; fill:#0f172a; font-size:18px;
+                         paint-order:stroke fill; stroke:#0f172a; stroke-width:.9px;">
+              Class
+            </text>
+            <text x="8" y="42"
+                  style="font-family:'Nunito','Arial Rounded MT','SF Pro Rounded','Quicksand','Pretendard','Noto Sans KR',sans-serif;
+                         font-weight:900; letter-spacing:-0.2px; fill:#0f172a; font-size:18px;
+                         paint-order:stroke fill; stroke:#0f172a; stroke-width:.9px;">
+              Around
+            </text>
+          </svg>
           <div>
+            <div class="text-[11px] font-semibold text-slate-700">
+            </div>
             <h1 class="text-base md:text-lg font-bold flex items-center gap-2">
               드라이브 폴더 모음
               <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-50 text-red-500 border border-red-100">
@@ -40,15 +60,28 @@
               </span>
             </h1>
             <p class="text-xs md:text-sm text-slate-500">
-              자주 쓰는 폴더를 한 곳에서 바로 열어보기
             </p>
           </div>
         </div>
 
-        <a href="index.html"
-           class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 text-xs font-medium bg-white hover:bg-slate-50">
-          ← 대시보드로
-        </a>
+        <!-- 오른쪽: 인증 상태 + 버튼들 -->
+        <div class="flex items-center gap-2 md:gap-3 text-[11px]">
+          <div class="hidden sm:flex items-center gap-1">
+            <span id="authStateDot" class="inline-block w-2 h-2 rounded-full bg-slate-300"></span>
+            <span id="authState" class="text-slate-500">
+              Google 인증 상태 확인 중
+            </span>
+          </div>
+          <button id="btnAuthRefresh"
+                  type="button"
+                  class="px-2.5 py-1 rounded-full border border-sky-500 bg-white text-sky-600 hover:bg-sky-50 text-[11px]">
+            Google 인증
+          </button>
+          <a href="index.html"
+             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 text-xs font-medium bg-white hover:bg-slate-50">
+            ← 대시보드로
+          </a>
+        </div>
       </div>
     </header>
 
@@ -68,8 +101,7 @@
           </div>
 
           <div class="mt-4 p-2.5 rounded-xl bg-sky-50 border border-sky-100 text-[11px] leading-relaxed text-sky-800">
-            ⓘ 선택한 폴더는 오른쪽에서 바로 미리보기 되고,<br />
-            새 탭에서 크게 보고 싶으면 상단 <b>「새 탭에서 열기」</b>를 눌러주세요.
+            ⓘ크게 보고 싶으면 <b>「새 탭에서 열기」</b>
           </div>
         </aside>
 
@@ -78,7 +110,6 @@
           <div class="px-4 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
             <div>
               <div class="text-xs uppercase tracking-wide text-slate-400 font-semibold">
-                DRIVE FOLDER VIEW
               </div>
               <div class="flex items-center gap-2 mt-0.5">
                 <h2 id="currentFolderName" class="text-sm md:text-base font-semibold">
@@ -114,6 +145,61 @@
   </div>
 
   <script>
+    /* ========== Google 인증 (토큰 호출) ========== */
+    const OAUTH_CLIENT_ID = "18228268359-iifm4ck3j9kqj74eh1p90tco1k2mbpi0.apps.googleusercontent.com";
+    const OAUTH_SCOPES   = "https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets";
+
+    let tokenClient = null;
+    let accessToken = null;
+
+    const $ = (sel) => document.querySelector(sel);
+
+    function loadTokenFromSession(){
+      const saved = sessionStorage.getItem("ca_gapi_token");
+      if(saved){
+        accessToken = saved;
+      }
+      updateAuthUI();
+    }
+
+    function initGoogleAuth(){
+      if(!window.google?.accounts?.oauth2){
+        alert("Google 로그인 스크립트를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+        return;
+      }
+      if(!tokenClient){
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: OAUTH_CLIENT_ID,
+          scope: OAUTH_SCOPES,
+          callback: (resp) => {
+            if(resp?.access_token){
+              accessToken = resp.access_token;
+              sessionStorage.setItem("ca_gapi_token", accessToken);
+              updateAuthUI();
+            }else{
+              alert("Google 인증에 실패했습니다.");
+            }
+          }
+        });
+      }
+      tokenClient.requestAccessToken({prompt:"consent"});
+    }
+
+    function updateAuthUI(){
+      const dot   = $("#authStateDot");
+      const label = $("#authState");
+      if(!dot || !label) return;
+      if(accessToken){
+        dot.style.background = "#22c55e";
+        label.textContent = "Google 인증 완료 (이 탭에서 토큰 사용 가능)";
+      }else{
+        dot.style.background = "#cbd5f5";
+        label.textContent = "";
+      }
+    }
+
+    /* ========== 드라이브 폴더 기능 ========== */
+
     // ===== 폴더 정의 (하드코딩) =====
     const FOLDERS = [
       {
@@ -164,7 +250,7 @@
 
     function renderFolderButtons(){
       folderListEl.innerHTML = "";
-      FOLDERS.forEach((f, idx) => {
+      FOLDERS.forEach((f) => {
         const btn = document.createElement("button");
         btn.type  = "button";
         btn.dataset.folderId = f.id;
@@ -220,11 +306,25 @@
     }
 
     // 초기 실행
-    renderFolderButtons();
-    // 첫 폴더 자동 선택
-    if(FOLDERS.length > 0){
-      selectFolder(FOLDERS[0].id);
-    }
+    document.addEventListener("DOMContentLoaded", () => {
+      // 토큰 로드 & UI 반영
+      loadTokenFromSession();
+
+      // 폴더 버튼 렌더링
+      renderFolderButtons();
+      if(FOLDERS.length > 0){
+        selectFolder(FOLDERS[0].id);
+      }
+
+      // Google 인증 버튼
+      const btnAuth = document.getElementById("btnAuthRefresh");
+      if(btnAuth){
+        btnAuth.addEventListener("click", (e) => {
+          e.preventDefault();
+          initGoogleAuth();
+        });
+      }
+    });
   </script>
 </body>
 </html>
