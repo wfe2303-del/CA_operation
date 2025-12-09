@@ -192,7 +192,10 @@
   </div>
 
   <script>
+    // ✅ index + 서브 페이지 공통 토큰 키
     const CLIENT_ID = "18228268359-iifm4ck3j9kqj74eh1p90tco1k2mbpi0.apps.googleusercontent.com";
+    const TOKEN_KEY = "ca_gapi_token_v1";
+
     let accessToken = null;
     let tokenClient = null;
 
@@ -211,8 +214,8 @@
     }
 
     function initAuthClient() {
+      // GIS가 아직 안 뜨면 조금 있다가 재시도
       if (!window.google?.accounts?.oauth2) {
-        // 아직 GIS가 안 떠있으면 조금 있다 다시 시도
         setTimeout(initAuthClient, 100);
         return;
       }
@@ -224,15 +227,22 @@
         callback: (res) => {
           if (res && res.access_token) {
             accessToken = res.access_token;
-            // 다른 페이지에서 재사용할 수 있도록 저장
-            sessionStorage.setItem("ca_gapi_token", accessToken);
-            setAuthState("로그인 완료 · 이 브라우저 탭에서 토큰 재사용 가능");
+
+            // ✅ 모든 페이지에서 재사용할 수 있게 두 군데에 저장
+            sessionStorage.setItem(TOKEN_KEY, accessToken);
+            localStorage.setItem(TOKEN_KEY, accessToken);
+
+            setAuthState("로그인 완료 · 이 브라우저에서 토큰 재사용 가능");
             showMain();
           }
         }
       });
 
-      const saved = sessionStorage.getItem("ca_gapi_token");
+      // 이미 로그인된 토큰이 있으면 바로 대시보드
+      const saved =
+        sessionStorage.getItem(TOKEN_KEY) ||
+        localStorage.getItem(TOKEN_KEY);
+
       if (saved) {
         accessToken = saved;
         setAuthState("이전에 로그인된 계정 사용 중");
@@ -252,7 +262,7 @@
             alert("Google 로그인 초기화 중입니다. 잠시 후 다시 시도해주세요.");
             return;
           }
-          // 첫 로그인 시에는 consent, 이후에는 대부분 자동 승인
+          // 첫 로그인 시에는 consent, 이후에는 자동 승인
           tokenClient.requestAccessToken({ prompt: "consent" });
         });
       }
